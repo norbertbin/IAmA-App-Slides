@@ -1,0 +1,102 @@
+---
+title       : IAmA Shiny App
+subtitle    : Exploring the IAmA Subreddit!
+author      : Norbert Binkiewicz
+job         : Developing Data Products (Coursera.org)
+framework   : io2012
+highlighter : highlight.js
+hitheme     : tomorrow
+widgets     : [mathjax]
+mode        : selfcontained
+---
+
+## Exploring IAmA Subreddit 
+
+<br/>
+
+- The IAmA subreddit is one of the most popular subreddits, where users can submit prompts for others to ask questions about any topic. Many celeberties and politicians have participated in the past.  
+
+- The first step to learning more about this online community is to explore which users respond to which submissions and investigate the common word usage of these users.
+
+---
+
+## IAmA Subreddit Data
+
+1. Data was pulled from the top 995 hot submissions to the IAmA subreddit as ranked by reddit on 02/20/2015. A maximum of 1000 comments were pulled from each submission. 
+2. The text in the comments and the submissions was processed to remove stop words and punctuation. 
+3. User names and submission ids were anonymized to protect privacy. 
+4. The data contains a total of  39,130 unique users.
+
+---
+
+## IAmA-App
+
+1. A word, user, or submission can be explored by selecting one of the three radio buttons. 
+2. The desired word, user id, or submission id should then be entered in the text box. 
+3. Pressing the update button will draw a cloud representing word frequency or user word usage frequency. 
+4. The tabs above the graph can be used to switch between a word cloud representation and a bar graph.
+
+![Alt text](shiny-app.png)
+
+---
+
+## Example for "statistics"
+
+If we look up "statistics" we get the word cloud of user ids shown below.
+
+```{r, echo=F}
+library(dplyr)
+library(R.matlab)
+library(wordcloud)
+
+PROC_DB_NAME = "../data/proc_subreddit.db"
+DTM_FILE = "../data/dtm_subreddit.mat"
+MAX_ROWS = 15
+
+# gets the counts for a word in comments/submissions
+get_word_freq <- function(dtm, vocab, word) {
+    word_id = which(vocab == word)
+    dtm = summary(dtm)
+    dtm = dtm[dtm$j == word_id,]
+    df = data.frame(item = dtm$i - 1, freq = dtm$x) %>% arrange(desc(freq))
+    return( df[1:min(MAX_ROWS, nrow(df)),] )
+}
+
+# gets the counts for the top words in entity (comments/submissions)
+get_word_for_entity <- function(dtm, vocab, entity, entity_array) {
+    entity_id = which(entity_array == entity)
+    dtm = summary(dtm)
+    dtm = dtm[dtm$i == entity_id,]
+    df = data.frame(item = vocab[dtm$j], freq = dtm$x) %>% arrange(desc(freq))
+    return( df[1:min(MAX_ROWS, nrow(df)),] )
+}
+
+### load data
+dtm_data = readMat(DTM_FILE)
+proc_db = src_sqlite(PROC_DB_NAME)
+vocab = tbl(proc_db, "Vocab")
+submissions = tbl(proc_db, "Submissions")
+comments = tbl(proc_db, "Comments")
+users = tbl(proc_db, "User")
+vocab = (vocab %>% select(vocab) %>% collect())$vocab
+users = (users %>% select(user) %>% collect())$user
+submissions = (submissions %>% select(sub_id) %>% collect())$sub_id
+###
+
+d1 = get_word_freq(dtm_data$user.dtm, vocab, "statistics")
+
+
+wordcloud(d1$item, d1$freq, min.freq=1, scale=c(5,.5), rot.per=.3, colors=brewer.pal(8,"Dark2"))
+```
+
+---
+
+## Example for "statistcs" Continued
+
+If we then look up the highest frequency user "14205" we get the word cloud shown below. This indicates that the most frequent user of "statistics" seems to be commenting about sports statistics.
+
+```{r, echo=F}
+d2 = get_word_for_entity(dtm_data$user.dtm, vocab, "14205", users)
+
+wordcloud(d2$item, d2$freq, min.freq=1, scale=c(5,.5), rot.per=.3, colors=brewer.pal(8,"Dark2"))
+```
