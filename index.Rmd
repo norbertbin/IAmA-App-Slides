@@ -18,6 +18,8 @@ mode        : selfcontained
 
 - The first step to learning more about this online community is to explore which users respond to which submissions and investigate the common word usage of these users.
 
+- Check out the [IAmA-App](https://norbertbin.shinyapps.io/IAmA-App/).
+
 ---
 
 ## IAmA Subreddit Data
